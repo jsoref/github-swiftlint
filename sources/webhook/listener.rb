@@ -2,6 +2,7 @@ require 'sinatra/base'
 require 'json'
 
 require 'webhook/handlers/pullrequest'
+
 require 'utils/logger'
 
 
@@ -19,6 +20,8 @@ module Webhook
     def dispatch(request)
       event = request.env["HTTP_X_GITHUB_EVENT"]
       payload = JSON.parse request.body.read
+      Logger.info "Dispatch event '#{event}'"
+      
       case event.to_sym
       when :pull_request
         Webhook::Handler::Pullrequest.process payload
