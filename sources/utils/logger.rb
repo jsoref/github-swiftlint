@@ -11,7 +11,8 @@ class Logger
     puts "[INFO] #{message}"
   end
   
-  def self.critical(message)
-    puts "[CRITICAL] #{message}"
+  def self.critical(error)
+    puts "[CRITICAL] #{error}"
+    puts "[CRITICAL] #{error.backtrace}"
   end
 end

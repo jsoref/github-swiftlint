@@ -43,7 +43,6 @@ module Core
         end
       rescue => e
         Logger.critical e
-        Logger.critical e.backtrace
         
         # Cancel current check run
         Core::ChecksManager.complete_check_run(check_ref, "cancelled") do |output|
@@ -65,7 +64,7 @@ module Core
       Dir.foreach("lintfiles") { |f| fn = File.delete(File.join("lintfiles", f)) if f != "." && f != ".." }
       
       response.files.select { |f| File.extname(f.name) == ".swift" }.each do |f|
-        open("lintfiles/#{f.name}", 'wb') do |fd|
+        open("lintfiles/#{File.basename(f.name)}", 'wb') do |fd|
           fd << open(f.raw_url).read
         end
       end
@@ -83,15 +82,19 @@ module Core
         level = warning_level descriptor[3]
         issue_description = descriptor[4] + " " + descriptor[5]
         
-        API::Github::Checks::Output::Annotation.new do |a|
-          a.filename = filename
-          a.start_line = Integer(line)
-          a.end_line = Integer(line)
-          a.warning_level = level
-          a.message = issue_description
-          
-          # search blob reference
-          a.blob_href = files_ref.detect { |f| f.name == filename }.blob_url
+        begin
+          API::Github::Checks::Output::Annotation.new do |a|
+            related_ref = files_ref.detect { |f| File.basename(f.name) == filename }
+            
+            a.filename = related_ref.name
+            a.start_line = Integer(line)
+            a.end_line = Integer(line)
+            a.warning_level = level
+            a.message = issue_description
+            a.blob_href = related_ref.blob_url
+          end
+        rescue => e
+          Logger.critical e
         end
       end
     end

@@ -34,7 +34,10 @@ module Webhook
           r.head_sha = payload["pull_request"]["head"]["sha"]
         end
         
-        Core::PullRequestLintRequest.new response
+        case response.action
+        when :opened, :edited, :reopened
+          Core::PullRequestLintRequest.new response
+        end
       end
     end
   end
