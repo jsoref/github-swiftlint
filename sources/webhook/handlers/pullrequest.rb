@@ -1,9 +1,11 @@
 require 'time'
 require 'utils/logger'
 
+require 'core/linter'
+
 require 'api/github'
 require 'api/actions/pullrequest'
-require 'api/actions/checks/run'
+require 'api/actions/checks/createrun'
 
 module Webhook
   module Handler
@@ -17,18 +19,12 @@ module Webhook
       end
       
       def self.process(payload)
-        response = parse_response payload
-        
-        case response.action
-        when :opened, :edited
-          opened response
-        else
-          Logger.error "Unknown pull request action: #{response.action}"
-        end
+        lintRequest = parse_response payload
+        Core::Linter.lint lintRequest
       end
       
       def self.parse_response(payload)
-        Response.new do |r|
+        response = Response.new do |r|
           r.action = payload["action"].to_sym
           r.number = payload["pull_request"]["number"]
           r.state = payload["pull_request"]["state"].to_sym
@@ -37,45 +33,8 @@ module Webhook
           r.head_branch = payload["pull_request"]["head"]["ref"]
           r.head_sha = payload["pull_request"]["head"]["sha"]
         end
-      end
-      
-      def self.opened(response)
-        Logger.info "opened/edited ##{response.number}"
         
-        updated_files_request = Action::PullrequestUpdatedFiles.new do |pr|
-          pr.number = response.number
-          pr.owner = response.owner
-          pr.repository = response.repository
-        end
-        updated_files_response = updated_files_request.perform
-        
-        createChecksRun = Action::Checks::CreateRun.new do |run|
-          run.owner = response.owner
-          run.repository = response.repository
-          run.name = "Code Linter"
-          run.head_branch = response.head_branch
-          run.head_sha = response.head_sha
-          run.status = "completed"
-          run.conclusion = "action_required"
-          run.completed_at = Time.now.utc.iso8601
-          run.output = Action::Checks::CreateRun::Output.new do |o|
-            o.title = "output title"
-            o.summary = "output summary"
-            
-            updated_files_response.files.each do |file|
-              o.annotations << Action::Checks::CreateRun::Output::Annotation.new do |a|
-                a.filename = file["filename"]
-                a.blob_href = file["blob_url"]
-                a.start_line = 1
-                a.end_line = 1
-                a.warning_level = "warning"
-                a.message = "Unused import of 'Foundation'."
-              end
-            end
-          end
-        end
-        response = createChecksRun.perform
-        # response = API::Github.perform createChecksRun
+        Core::PullRequestLintRequest.new response
       end
     end
   end
