@@ -3,7 +3,7 @@ require 'utils/logger'
 
 require 'api/github'
 require 'api/actions/pullrequest'
-require 'api/actions/checks'
+require 'api/actions/checks/run'
 
 module Webhook
   module Handler
@@ -42,16 +42,14 @@ module Webhook
       def self.opened(response)
         Logger.info "opened/edited ##{response.number}"
         
-        action = Action::PullrequestUpdatedFiles.new do |pr|
+        updated_files_request = Action::PullrequestUpdatedFiles.new do |pr|
           pr.number = response.number
           pr.owner = response.owner
           pr.repository = response.repository
         end
+        updated_files_response = updated_files_request.perform
         
-        updated_files = API::Github.perform action
-        
-        
-        createChecksRun = Action::CreateChecksRun.new do |run|
+        createChecksRun = Action::Checks::CreateRun.new do |run|
           run.owner = response.owner
           run.repository = response.repository
           run.name = "Code Linter"
@@ -60,12 +58,12 @@ module Webhook
           run.status = "completed"
           run.conclusion = "action_required"
           run.completed_at = Time.now.utc.iso8601
-          run.output = Action::CreateChecksRun::Output.new do |o|
+          run.output = Action::Checks::CreateRun::Output.new do |o|
             o.title = "output title"
             o.summary = "output summary"
             
-            updated_files.each do |file|
-              o.annotations << Action::CreateChecksRun::Output::Annotation.new do |a|
+            updated_files_response.files.each do |file|
+              o.annotations << Action::Checks::CreateRun::Output::Annotation.new do |a|
                 a.filename = file["filename"]
                 a.blob_href = file["blob_url"]
                 a.start_line = 1
@@ -76,8 +74,8 @@ module Webhook
             end
           end
         end
-        
-        response = API::Github.perform createChecksRun
+        response = createChecksRun.perform
+        # response = API::Github.perform createChecksRun
       end
     end
   end

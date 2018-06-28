@@ -14,6 +14,16 @@ module API
         @payload = nil
         yield self
       end
+      
+      def perform
+        Network.perform self
+      end
+    end
+    
+    class Network
+      def self.perform(action)
+        Github.perform action
+      end
     end
     
     @base_url = "https://api.github.com/"
@@ -26,7 +36,6 @@ module API
       action_url = URI.join(@base_url, action.url).to_s
       headers = action.headers
       sender = RestClient.method(action.method)
-      Logger.info sender
       Logger.info "#{action.method} #{action_url}"
       headers.each do |header, value|
         Logger.info "Header #{header}: #{value}"
