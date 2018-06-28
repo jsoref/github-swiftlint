@@ -11,6 +11,7 @@ module API
       
       def initialize
         @headers = {}
+        @payload = nil
         yield self
       end
     end
@@ -23,9 +24,9 @@ module API
     
     def self.perform(action)
       action_url = URI.join(@base_url, action.url).to_s
-      headers = action.headers.merge authorization
+      headers = action.headers
       sender = RestClient.method(action.method)
-      
+      Logger.info sender
       Logger.info "#{action.method} #{action_url}"
       headers.each do |header, value|
         Logger.info "Header #{header}: #{value}"
@@ -33,20 +34,19 @@ module API
       
       begin
         reponse = ""
-        if defined?(action.payload) == true
+        if action.payload != nil
+          Logger.info "Payload: #{action.payload.to_json}"
           response = sender.call action_url, action.payload.to_json, headers
         else
+          Logger.info "Payload: None"
           response = sender.call action_url, headers
         end
+        Logger.info "Response:\n#{response}"
         JSON.parse response
       rescue RestClient::ExceptionWithResponse => e
-        puts e.response
+        Logger.error e.response
+        e.response
       end
-    end
-    
-    def self.authorization
-      {}
-      # {:authorization => "Bearer #{Security::Key.jwt_token}"}
     end
   end
 end

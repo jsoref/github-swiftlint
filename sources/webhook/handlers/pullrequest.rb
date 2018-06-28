@@ -1,13 +1,15 @@
+require 'time'
 require 'utils/logger'
 
 require 'api/github'
 require 'api/actions/pullrequest'
+require 'api/actions/checks'
 
 module Webhook
   module Handler
     class Pullrequest
       class Response
-        attr_accessor :action, :number, :state, :repository, :owner
+        attr_accessor :action, :number, :state, :repository, :owner, :head_branch, :head_sha
         
         def initialize
           yield self
@@ -32,6 +34,8 @@ module Webhook
           r.state = payload["pull_request"]["state"].to_sym
           r.repository = payload["repository"]["name"]
           r.owner = payload["repository"]["owner"]["login"]
+          r.head_branch = payload["pull_request"]["head"]["ref"]
+          r.head_sha = payload["pull_request"]["head"]["sha"]
         end
       end
       
@@ -44,7 +48,35 @@ module Webhook
           pr.repository = response.repository
         end
         
-        puts API::Github.perform action
+        updated_files = API::Github.perform action
+        
+        
+        createChecksRun = Action::CreateChecksRun.new do |run|
+          run.owner = response.owner
+          run.repository = response.repository
+          run.name = "Code Linter"
+          run.head_branch = response.head_branch
+          run.head_sha = response.head_sha
+          run.conclusion = "action_required"
+          run.completed_at = Time.now.utc.iso8601
+          run.output = Action::CreateChecksRun::Output.new do |o|
+            o.title = "output title"
+            o.summary = "output summary"
+            
+            updated_files.each do |file|
+              o.annotations << Action::CreateChecksRun::Output::Annotation.new do |a|
+                a.filename = file["filename"]
+                a.blob_href = file["blob_url"]
+                a.start_line = 1
+                a.end_line = 1
+                a.warning_level = "warning"
+                a.message = "Unused import of 'Foundation'."
+              end
+            end
+          end
+        end
+        
+        response = API::Github.perform createChecksRun
       end
     end
   end
