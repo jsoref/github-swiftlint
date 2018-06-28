@@ -2,6 +2,7 @@ require 'open-uri'
 
 require 'core/checksmanager'
 require 'api/actions/pullrequest'
+require 'utils/logger'
 
 module Core
   class PullRequestLintRequest
@@ -27,16 +28,27 @@ module Core
     
     def self.lint_new_pr(request)
       check_ref = Core::ChecksManager.create_check_run request
-      updated_files = prepare_updated_files request
       
-      annotations = run_lint updated_files.files
-      conclusion = annotations.count > 0 ? :failure : :success
-      
-      Core::ChecksManager.complete_check_run(check_ref, conclusion) do |output|
-        output.title = ""
-        output.summary = ""
+      begin
+        updated_files = prepare_updated_files request
         
-        output.annotations = annotations.first(50)
+        annotations = run_lint updated_files.files
+        conclusion = annotations.count > 0 ? :failure : :success
+        
+        Core::ChecksManager.complete_check_run(check_ref, conclusion) do |output|
+          output.title = ""
+          output.summary = ""
+          
+          output.annotations = annotations.first(50)
+        end
+      rescue => e
+        Logger.critical e
+        
+        # Cancel current check run
+        Core::ChecksManager.complete_check_run(check_ref, "cancelled") do |output|
+          output.title = "Critical error occured"
+          output.summary = "An exception was raised during the verifing process. The lint job won't work until fix."
+        end
       end
     end
     

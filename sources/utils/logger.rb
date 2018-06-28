@@ -10,4 +10,8 @@ class Logger
   def self.info(message)
     puts "[INFO] #{message}"
   end
+  
+  def self.critical(message)
+    puts "[CRITICAL] #{message}"
+  end
 end
