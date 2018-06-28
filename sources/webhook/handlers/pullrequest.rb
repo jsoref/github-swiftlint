@@ -57,6 +57,7 @@ module Webhook
           run.name = "Code Linter"
           run.head_branch = response.head_branch
           run.head_sha = response.head_sha
+          run.status = "completed"
           run.conclusion = "action_required"
           run.completed_at = Time.now.utc.iso8601
           run.output = Action::CreateChecksRun::Output.new do |o|

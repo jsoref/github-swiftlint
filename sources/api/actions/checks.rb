@@ -66,7 +66,7 @@ module Action
         :name => @name,
         :head_branch => @head_branch,
         :head_sha => @head_sha,
-        :status => "completed",
+        :status => @status,
         :conclusion => @conclusion,
         :completed_at => @completed_at.to_s,
         :output => @output.payload
