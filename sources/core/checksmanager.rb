@@ -8,7 +8,7 @@ module Core
       createChecksRun = Action::Checks::CreateRun.new do |run|
         run.owner = request.owner
         run.repository = request.repository
-        run.name = "Code Linter"
+        run.name = "Swift Lint"
         run.head_branch = request.head_branch
         run.head_sha = request.head_sha
         run.status = "in_progress"

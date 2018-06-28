@@ -33,8 +33,8 @@ module Core
       conclusion = annotations.count > 0 ? :failure : :success
       
       Core::ChecksManager.complete_check_run(check_ref, conclusion) do |output|
-        output.title = "output title"
-        output.summary = "output summary"
+        output.title = ""
+        output.summary = ""
         
         output.annotations = annotations.first(50)
       end
