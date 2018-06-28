@@ -43,6 +43,7 @@ module Core
         end
       rescue => e
         Logger.critical e
+        Logger.critical e.backtrace
         
         # Cancel current check run
         Core::ChecksManager.complete_check_run(check_ref, "cancelled") do |output|
@@ -63,7 +64,7 @@ module Core
       # cleanup linter directory
       Dir.foreach("lintfiles") { |f| fn = File.delete(File.join("lintfiles", f)) if f != "." && f != ".." }
       
-      response.files.each do |f|
+      response.files.select { |f| File.extname(f.name) == ".swift" }.each do |f|
         open("lintfiles/#{f.name}", 'wb') do |fd|
           fd << open(f.raw_url).read
         end
