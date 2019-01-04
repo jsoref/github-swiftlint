@@ -13,7 +13,7 @@ module Action
         end
       end
       
-      attr_accessor :name, :head_branch, :head_sha, :status, :conclusion, :completed_at, :output
+      attr_accessor :name, :head_branch, :head_sha, :status, :started_at, :conclusion, :completed_at, :output
       
       def initialize
         super do |a|
@@ -31,7 +31,8 @@ module Action
           :head_sha => @head_sha,
           :status => @status
         }
-        
+
+        @payload[:started_at] = defined? @started_at ? @started_at.to_s : Time.now.utc.iso8601
         @payload[:conclusion] = @conclusion if defined? @conclusion
         @payload[:output] = @output.payload if defined? @output
         @payload[:completed_at] = @completed_at.to_s if defined? @completed_at

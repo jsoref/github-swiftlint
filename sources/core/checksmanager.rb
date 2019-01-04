@@ -21,7 +21,7 @@ module Core
         cr.owner = check_ref.owner
         cr.repository = check_ref.repository
         cr.id = check_ref.id
-        
+        cr.started_at = check_ref.started_at
         cr.conclusion = conclusion.to_s
         if block_given?
           output = API::Github::Checks::Output.new

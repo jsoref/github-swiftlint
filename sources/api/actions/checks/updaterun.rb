@@ -8,7 +8,7 @@ module Action
   module Checks
     class UpdateRun < API::Github::Checks::ChecksAction
       
-      attr_accessor :id, :name, :head_branch, :head_sha, :status, :conclusion, :output
+      attr_accessor :id, :name, :head_branch, :head_sha, :status, :started_at, :conclusion, :output
       attr_reader :payload
       
       def initialize
@@ -26,6 +26,7 @@ module Action
         @payload[:conclusion] = @conclusion if defined? @conclusion
         @payload[:output] = @output.payload if defined? @output
         
+        @payload[:started_at] = defined? @started_at ? @started_at.to_s : Time.now.utc.iso8601
         @payload[:completed_at] = Time.now.utc.iso8601
       end
       
